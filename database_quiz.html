@@ -1,0 +1,1024 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ITS Database Quiz</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0e1a;
+    --surface: #111827;
+    --surface2: #1a2235;
+    --border: #1e2d45;
+    --accent: #00e5ff;
+    --accent2: #7c3aed;
+    --success: #10b981;
+    --danger: #ef4444;
+    --text: #e2e8f0;
+    --muted: #64748b;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Grid background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,229,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,229,255,0.03) 1px, transparent 1px);
+    background-size: 50px 50px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Glow orbs */
+  .orb1, .orb2 {
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(120px);
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.15;
+  }
+  .orb1 { width: 500px; height: 500px; background: var(--accent2); top: -100px; right: -100px; }
+  .orb2 { width: 400px; height: 400px; background: var(--accent); bottom: -100px; left: -100px; }
+
+  #app {
+    position: relative;
+    z-index: 1;
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem 4rem;
+  }
+
+  /* ===== SCREEN MANAGEMENT ===== */
+  .screen { display: none; }
+  .screen.active { display: block; animation: fadeUp 0.4s ease; }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ===== START SCREEN ===== */
+  .start-header {
+    text-align: center;
+    padding: 4rem 0 3rem;
+  }
+
+  .start-badge {
+    display: inline-block;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 3px;
+    color: var(--accent);
+    border: 1px solid var(--accent);
+    padding: 4px 14px;
+    border-radius: 2px;
+    margin-bottom: 1.5rem;
+    text-transform: uppercase;
+  }
+
+  .start-title {
+    font-family: 'Space Mono', monospace;
+    font-size: clamp(2rem, 5vw, 3.2rem);
+    font-weight: 700;
+    line-height: 1.1;
+    margin-bottom: 1rem;
+  }
+
+  .start-title span {
+    color: var(--accent);
+    display: block;
+  }
+
+  .start-sub {
+    color: var(--muted);
+    font-size: 1rem;
+    max-width: 420px;
+    margin: 0 auto 2.5rem;
+    line-height: 1.6;
+  }
+
+  .stats-row {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    margin-bottom: 3rem;
+    flex-wrap: wrap;
+  }
+
+  .stat-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1rem 1.5rem;
+    text-align: center;
+    min-width: 120px;
+  }
+
+  .stat-box .num {
+    font-family: 'Space Mono', monospace;
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: var(--accent);
+  }
+
+  .stat-box .label {
+    font-size: 0.75rem;
+    color: var(--muted);
+    margin-top: 2px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  /* Mode selection */
+  .mode-title {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.75rem;
+    letter-spacing: 2px;
+    color: var(--muted);
+    text-transform: uppercase;
+    text-align: center;
+    margin-bottom: 1rem;
+  }
+
+  .mode-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+
+  .mode-card {
+    background: var(--surface);
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    padding: 1.5rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: left;
+  }
+
+  .mode-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+  .mode-card.selected { border-color: var(--accent); background: rgba(0,229,255,0.05); }
+
+  .mode-icon {
+    font-size: 1.8rem;
+    margin-bottom: 0.6rem;
+  }
+
+  .mode-name {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.9rem;
+    font-weight: 700;
+    margin-bottom: 0.3rem;
+    color: var(--text);
+  }
+
+  .mode-desc {
+    font-size: 0.8rem;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+
+  .btn-start {
+    display: block;
+    width: 100%;
+    max-width: 340px;
+    margin: 0 auto;
+    background: var(--accent);
+    color: #000;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.95rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    padding: 1rem 2rem;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn-start:hover { background: #33eaff; transform: translateY(-2px); box-shadow: 0 8px 30px rgba(0,229,255,0.3); }
+
+  /* ===== QUIZ SCREEN ===== */
+  .quiz-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.5rem;
+    gap: 1rem;
+  }
+
+  .q-counter {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.8rem;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+
+  .q-counter span { color: var(--accent); }
+
+  .progress-bar {
+    flex: 1;
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent2), var(--accent));
+    border-radius: 2px;
+    transition: width 0.4s ease;
+  }
+
+  .score-pill {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.8rem;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    padding: 4px 12px;
+    border-radius: 20px;
+    white-space: nowrap;
+  }
+
+  .score-pill .s { color: var(--success); }
+
+  .question-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 2rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .q-category {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 2px;
+    color: var(--accent2);
+    text-transform: uppercase;
+    margin-bottom: 0.8rem;
+  }
+
+  .q-text {
+    font-size: 1.05rem;
+    line-height: 1.65;
+    font-weight: 500;
+  }
+
+  .options-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.7rem;
+  }
+
+  .option-btn {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    padding: 1rem 1.2rem;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: left;
+    width: 100%;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.95rem;
+    line-height: 1.45;
+  }
+
+  .option-btn:hover:not(:disabled) {
+    border-color: var(--accent);
+    background: rgba(0,229,255,0.04);
+  }
+
+  .option-btn:disabled { cursor: default; }
+
+  .option-btn.correct {
+    border-color: var(--success);
+    background: rgba(16,185,129,0.1);
+    color: #6ee7b7;
+  }
+
+  .option-btn.wrong {
+    border-color: var(--danger);
+    background: rgba(239,68,68,0.08);
+    color: #fca5a5;
+  }
+
+  .option-letter {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.75rem;
+    font-weight: 700;
+    width: 26px;
+    height: 26px;
+    border-radius: 4px;
+    background: var(--surface2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.15s;
+  }
+
+  .option-btn.correct .option-letter { background: var(--success); color: #000; }
+  .option-btn.wrong .option-letter { background: var(--danger); color: #fff; }
+
+  .feedback-box {
+    background: var(--surface2);
+    border-radius: 8px;
+    padding: 1rem 1.2rem;
+    margin-top: 1rem;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    border-left: 3px solid var(--accent);
+    display: none;
+    animation: fadeUp 0.3s ease;
+  }
+
+  .feedback-box.show { display: block; }
+  .feedback-box .fb-label { font-family: 'Space Mono', monospace; font-size: 0.7rem; letter-spacing: 1px; text-transform: uppercase; color: var(--accent); margin-bottom: 4px; }
+
+  .btn-next {
+    margin-top: 1.5rem;
+    display: none;
+    width: 100%;
+    background: var(--surface2);
+    border: 1.5px solid var(--border);
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    padding: 0.9rem;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn-next:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-next.show { display: block; animation: fadeUp 0.3s ease; }
+
+  /* ===== RESULTS SCREEN ===== */
+  .results-wrap {
+    text-align: center;
+    padding: 3rem 0;
+  }
+
+  .result-ring {
+    width: 160px;
+    height: 160px;
+    margin: 0 auto 2rem;
+    position: relative;
+  }
+
+  .result-ring svg { transform: rotate(-90deg); }
+
+  .result-ring .pct-text {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+  }
+
+  .pct-num {
+    font-family: 'Space Mono', monospace;
+    font-size: 2rem;
+    font-weight: 700;
+  }
+
+  .pct-label {
+    font-size: 0.7rem;
+    color: var(--muted);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  .result-title {
+    font-family: 'Space Mono', monospace;
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .result-sub {
+    color: var(--muted);
+    margin-bottom: 2.5rem;
+    font-size: 0.95rem;
+  }
+
+  .result-stats {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    margin-bottom: 3rem;
+    flex-wrap: wrap;
+  }
+
+  .rst { 
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1rem 1.5rem;
+    min-width: 120px;
+  }
+
+  .rst .rn { font-family: 'Space Mono', monospace; font-size: 1.6rem; font-weight: 700; }
+  .rst.correct-s .rn { color: var(--success); }
+  .rst.wrong-s .rn { color: var(--danger); }
+  .rst .rl { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-top: 3px; }
+
+  .result-btns {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .btn-outline {
+    background: transparent;
+    border: 1.5px solid var(--border);
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    padding: 0.8rem 1.8rem;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+
+  .btn-primary {
+    background: var(--accent);
+    border: none;
+    color: #000;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    padding: 0.8rem 1.8rem;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn-primary:hover { background: #33eaff; box-shadow: 0 4px 20px rgba(0,229,255,0.3); }
+
+  /* Review list */
+  .review-list { margin-top: 3rem; text-align: left; }
+  .review-title { font-family: 'Space Mono', monospace; font-size: 0.75rem; letter-spacing: 2px; color: var(--muted); text-transform: uppercase; margin-bottom: 1rem; }
+  
+  .review-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1rem 1.2rem;
+    margin-bottom: 0.6rem;
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .review-icon { font-size: 1.1rem; flex-shrink: 0; margin-top: 1px; }
+  .review-q { font-size: 0.88rem; color: var(--muted); margin-bottom: 4px; }
+  .review-a { font-size: 0.9rem; color: var(--text); }
+  .review-correct { font-size: 0.82rem; color: var(--success); margin-top: 3px; }
+
+  @media (max-width: 480px) {
+    .mode-grid { grid-template-columns: 1fr; }
+    .question-card { padding: 1.3rem; }
+  }
+</style>
+</head>
+<body>
+<div class="orb1"></div>
+<div class="orb2"></div>
+<div id="app">
+
+  <!-- START SCREEN -->
+  <div class="screen active" id="start-screen">
+    <div class="start-header">
+      <div class="start-badge">ITS Certification Prep</div>
+      <h1 class="start-title">Database<span>Quiz</span></h1>
+      <p class="start-sub">Test your knowledge on SQL, database design, normalization, indexes, and more.</p>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-box"><div class="num">200</div><div class="label">Questions</div></div>
+      <div class="stat-box"><div class="num">199</div><div class="label">Pass Score</div></div>
+      <div class="stat-box"><div class="num">10</div><div class="label">Topics</div></div>
+    </div>
+
+    <p class="mode-title">Choose Quiz Mode</p>
+    <div class="mode-grid">
+      <div class="mode-card selected" data-mode="10" onclick="selectMode(this)">
+        <div class="mode-icon">⚡</div>
+        <div class="mode-name">Quick — 10 Qs</div>
+        <div class="mode-desc">Fast review, mixed topics, instant results.</div>
+      </div>
+      <div class="mode-card" data-mode="25" onclick="selectMode(this)">
+        <div class="mode-icon">🎯</div>
+        <div class="mode-name">Standard — 25 Qs</div>
+        <div class="mode-desc">Balanced session covering all major areas.</div>
+      </div>
+      <div class="mode-card" data-mode="50" onclick="selectMode(this)">
+        <div class="mode-icon">🔥</div>
+        <div class="mode-name">Challenge — 50 Qs</div>
+        <div class="mode-desc">Deep dive to solidify your understanding.</div>
+      </div>
+      <div class="mode-card" data-mode="all" onclick="selectMode(this)">
+        <div class="mode-icon">🏆</div>
+        <div class="mode-name">Full Exam — All Qs</div>
+        <div class="mode-desc">Complete the entire question bank.</div>
+      </div>
+    </div>
+
+    <button class="btn-start" onclick="startQuiz()">START QUIZ →</button>
+  </div>
+
+  <!-- QUIZ SCREEN -->
+  <div class="screen" id="quiz-screen">
+    <div class="quiz-header">
+      <div class="q-counter">Q <span id="q-num">1</span> / <span id="q-total">10</span></div>
+      <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+      <div class="score-pill"><span class="s" id="score-display">0</span> pts</div>
+    </div>
+
+    <div class="question-card">
+      <div class="q-category" id="q-category">SQL Queries</div>
+      <div class="q-text" id="q-text"></div>
+      <div class="feedback-box" id="feedback-box">
+        <div class="fb-label">Explanation</div>
+        <div id="feedback-text"></div>
+      </div>
+    </div>
+
+    <div class="options-list" id="options-list"></div>
+
+    <button class="btn-next" id="btn-next" onclick="nextQuestion()">NEXT QUESTION →</button>
+  </div>
+
+  <!-- RESULTS SCREEN -->
+  <div class="screen" id="results-screen">
+    <div class="results-wrap">
+      <div class="result-ring">
+        <svg width="160" height="160" viewBox="0 0 160 160">
+          <circle cx="80" cy="80" r="66" fill="none" stroke="#1a2235" stroke-width="12"/>
+          <circle cx="80" cy="80" r="66" fill="none" stroke="url(#grad)" stroke-width="12"
+            stroke-linecap="round" stroke-dasharray="414.69" id="ring-circle" stroke-dashoffset="414.69"/>
+          <defs>
+            <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" style="stop-color:#7c3aed"/>
+              <stop offset="100%" style="stop-color:#00e5ff"/>
+            </linearGradient>
+          </defs>
+        </svg>
+        <div class="pct-text">
+          <div class="pct-num" id="pct-num">0%</div>
+          <div class="pct-label">Score</div>
+        </div>
+      </div>
+
+      <h2 class="result-title" id="result-title">Well done!</h2>
+      <p class="result-sub" id="result-sub">Here's how you performed.</p>
+
+      <div class="result-stats">
+        <div class="rst correct-s"><div class="rn" id="r-correct">0</div><div class="rl">Correct</div></div>
+        <div class="rst wrong-s"><div class="rn" id="r-wrong">0</div><div class="rl">Wrong</div></div>
+        <div class="rst"><div class="rn" id="r-total">0</div><div class="rl">Total</div></div>
+      </div>
+
+      <div class="result-btns">
+        <button class="btn-outline" onclick="retakeQuiz()">↩ RETAKE</button>
+        <button class="btn-primary" onclick="goHome()">NEW QUIZ</button>
+      </div>
+
+      <div class="review-list" id="review-list">
+        <p class="review-title">Review Wrong Answers</p>
+        <div id="review-items"></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const QUESTIONS = [
+  { category: "Transaction Isolation", q: "JDBC API 2.0 defines five levels of transaction isolation. Which is the LOWEST level?", options: ["TRANSACTION_READ_COMMITTED","TRANSACTION_NONE","TRANSACTION_SERIALIZABLE","TRANSACTION_READ_UNCOMMITTED","TRANSACTION_REPEATABLE_READ"], answer: 1, explanation: "TRANSACTION_NONE is the lowest (actually means transactions are not supported). TRANSACTION_READ_UNCOMMITTED is the lowest functional isolation level." },
+  { category: "Indexes", q: "Which statement about rebuilding an index is true?", options: ["The NOLOGGING and ONLINE keywords can never be used together.","The NOLOGGING and ONLINE keywords are always used together.","Without the ONLINE keyword, the index is locked for any DML operation.","Without the ONLINE keyword, the index is locked for SELECT operations."], answer: 2, explanation: "Without the ONLINE keyword, rebuilding an index locks the table for all DML (INSERT, UPDATE, DELETE) operations during the rebuild." },
+  { category: "SQL Keywords", q: "The UNION keyword combines results of two queries and returns only rows that appear in BOTH result sets. What keyword should replace UNION?", options: ["INTERSECT","JOIN","No change is needed","ALL"], answer: 0, explanation: "INTERSECT returns only rows that appear in both result sets. UNION returns all rows from both (removing duplicates). UNION ALL returns all rows including duplicates." },
+  { category: "Security & Permissions", q: "Which permission does a user need to run a stored procedure?", options: ["RUN","ALLOW","EXECUTE","CALL"], answer: 2, explanation: "The EXECUTE permission is required to run a stored procedure in SQL databases." },
+  { category: "Views", q: "Which keyword MUST be included in a CREATE VIEW statement?", options: ["WHERE","UPDATE","ORDER BY","SELECT"], answer: 3, explanation: "A view is essentially a stored SELECT statement. The SELECT keyword is mandatory in CREATE VIEW." },
+  { category: "Data Manipulation", q: "What statement is used to copy records from one table into an EXISTING table?", options: ["SELECT","SELECT WITHIN","SELECT INTO","INSERT INTO .. SELECT"], answer: 3, explanation: "INSERT INTO ... SELECT copies records from a source table into an existing target table. SELECT INTO creates a NEW table." },
+  { category: "Transactions", q: "To delete a volunteer from a table using a proper transaction with data integrity, which statement structure is correct?", options: ["BEGIN TRANSACTION / DELETE / COMMIT TRANSACTION","WHILE TRANSACTION / DELETE / CATCH TRANSACTION","OPEN TRANSACTION / DELETE / CLOSE TRANSACTION","UPDATE TRANSACTION / DELETE / END TRANSACTION"], answer: 0, explanation: "A proper SQL transaction uses BEGIN TRANSACTION to start, the DML statement(s), then COMMIT TRANSACTION to save or ROLLBACK to undo." },
+  { category: "Indexes", q: "Which type of index changes the ORDER in which data is stored in a table?", options: ["Clustered","Non-clustered","Non-sequential","Sequential"], answer: 0, explanation: "A clustered index physically sorts and stores the data rows in the table based on the index key. There can only be one clustered index per table." },
+  { category: "Data Types", q: "A key defines the amount of storage space allocated to a value in a column. What should replace 'key'?", options: ["Validator","Data type","No change is needed","Format"], answer: 1, explanation: "A data type defines the amount of storage space and type of data that can be stored in a column (e.g., INT, VARCHAR, DATE)." },
+  { category: "Referential Integrity", q: "Which statement is TRUE about referential integrity?", options: ["It checks that no component of a primary key can have a null value.","It distinguishes between null values and zero entries.","It checks that no record in a child table can exist without a corresponding record in the parent table.","It checks that the value of a primary key must be consistent throughout the life of an instance."], answer: 2, explanation: "Referential integrity ensures that foreign key values in a child table must match a primary key value in the parent table (or be NULL if allowed)." },
+  { category: "Normalization", q: "First Normal Form (1NF) requires that a database excludes:", options: ["Duplicate rows","Repeating groups","Composite keys","Foreign keys"], answer: 1, explanation: "1NF eliminates repeating groups by ensuring each column contains atomic (indivisible) values and each row is unique." },
+  { category: "Relationships", q: "A university has many regional centers, each with more than one study center. What is the relationship between regional center and study center?", options: ["There is no relationship.","One-to-one","One-to-many","Many-to-many"], answer: 2, explanation: "One regional center has many study centers, making this a one-to-many relationship." },
+  { category: "MySQL Security", q: "You want to disable remote client connections on a MySQL server. Which option should you use?", options: ["--shared-memory","--secure-auth","--skip-networking","--disable-networking"], answer: 2, explanation: "The --skip-networking option prevents TCP/IP connections, allowing only local socket connections, effectively disabling remote client access." },
+  { category: "Normalization", q: "To normalize recipe data (with ID, RecipeName, PrimaryIngredient, Category) to Third Normal Form, how many tables should you create?", options: ["1","3","2","4"], answer: 1, explanation: "3NF requires: a Recipe table, an Ingredient table, and a Category table — 3 tables total to eliminate transitive dependencies." },
+  { category: "MySQL Administration", q: "To sync MySQL time zones with Unix system time zones, which command should you use?", options: ["mysql_tz_to_sql /usr/share/zoneinfo | mysql -u root mysql","mysql_tzinfo_to_sql /usr/share/zoneinfo | mysql -u root mysql","mysql_tz_to_sql /usr/share/zoneinfo | mysql -u root mysal","/usr/share/zoneinfo mysql_tzinfo_to_sql | mysql -u root mysql"], answer: 1, explanation: "mysql_tzinfo_to_sql converts the system timezone files and pipes the output into MySQL's timezone tables." },
+  { category: "SQL Naming", q: "What is NOT allowed in object names in SQL?", options: ["Special characters","Symbols","Spaces","Numbers"], answer: 2, explanation: "Spaces are not allowed in standard SQL object names without using delimiters (like square brackets or backticks)." },
+  { category: "Database Design", q: "Which database design is INDEPENDENT of a particular DBMS?", options: ["Application design","Physical database design","Logical database design","Conceptual database design"], answer: 2, explanation: "Logical database design is DBMS-independent. Physical design is DBMS-specific. Conceptual design is even more abstract (entity-level)." },
+  { category: "Database Design", q: "Which of the following are the main approaches in database design? (Choose three)", options: ["Top-down approach","Bottom-up approach","Middle approach","Inside-out approach"], answer: [0,1,3], explanation: "The three main approaches are: Top-down (from general to specific), Bottom-up (from specific to general), and Inside-out (starting from a core entity and expanding)." },
+  { category: "Normalization", q: "You combine data from three tables into one table with redundancy to optimize read performance. The data has been ______.", options: ["No change is needed","Indexed","Normalized","Denormalized"], answer: 0, explanation: "Denormalization combines tables and adds redundancy intentionally to improve read performance — the original statement is correct." },
+  { category: "SQL Queries", q: "Which query retrieves only the names of songs that sold more than 1000 CDs from the SongInformation table?", options: ["SELECT Name FROM SongInformation WHERE CDsSold > 1000","SELECT Name FROM CDsSold WHERE CDsSold > 1000","SELECT * FROM SongInformation WHERE CDsSold = 1000","SELECT * FROM SongInformation"], answer: 0, explanation: "Option A correctly selects only the Name column from the right table with the correct WHERE condition using > 1000." },
+  { category: "SQL Joins", q: "SELECT * FROM Cars LEFT OUTER JOIN Colors ON Cars.ColorId = Colors.ColorID — Cars has 3 rows (ColorIds: 2, NULL, 1), Colors has 2 rows (1, 2). How many rows returned?", options: ["0","3","6","2"], answer: 1, explanation: "LEFT OUTER JOIN returns ALL rows from the left table (Cars = 3 rows), with matching data from Colors or NULL where there's no match. Result: 3 rows." },
+  { category: "SQL Statements", q: "In SQL, an INSERT statement is used to add a:", options: ["Table to a database","Column to a table definition","User to a database","Row of data to a table"], answer: 3, explanation: "The INSERT statement adds a new row (record) of data to an existing table." },
+  { category: "SQL Errors", q: "Which statement best defines a syntax error?", options: ["Causes tables to not appear correctly","Prevents a table from being created","Prevents changes to a database","Causes a statement not to run"], answer: 3, explanation: "A syntax error occurs when SQL code violates grammar rules, causing the statement to fail to execute (not run) at all." },
+  { category: "Constraints", q: "A relational DBMS employs the concept of ______ to ensure data entered into a column is valid.", options: ["An index","A constraint","A primary key","No change is needed"], answer: 1, explanation: "A constraint enforces rules on data in columns (e.g., NOT NULL, UNIQUE, CHECK, FOREIGN KEY) to ensure data validity." },
+  { category: "SQL Keywords", q: "The UNION keyword returns only rows that appear in BOTH result sets. What keyword should replace UNION?", options: ["INTERSECT","ALL","JOIN","No change is needed"], answer: 0, explanation: "INTERSECT returns rows common to both queries. UNION returns all rows from both (minus duplicates). This is the same as Q3 — INTERSECT is correct." },
+  { category: "SQL Queries", q: "You need to write an UPDATE statement for a specific ProductID. Which clause should you use?", options: ["WHERE","THAT","HAVING","GROUP BY"], answer: 0, explanation: "The WHERE clause filters which rows the UPDATE affects. Without WHERE, ALL rows would be updated." },
+  { category: "Indexes", q: "You need an index on Orders with sales > $1000 only, and want the smallest possible index. What type?", options: ["Clustered","XML","Filtered","Non-clustered"], answer: 2, explanation: "A filtered index includes only rows matching a WHERE condition, making it smaller and faster for those specific queries." },
+  { category: "Views", q: "Views are database objects that contain all of the data in a database. What should replace 'Views'?", options: ["Stored procedures","Tables","No change is needed","Queries"], answer: 1, explanation: "TABLES contain all of the data in a database. Views are virtual tables based on SELECT queries — they don't store data themselves." },
+  { category: "Backup & Recovery", q: "You create a backup at 3PM, create a table and import data at 4PM, server fails at 5PM. You restore the 3PM backup. What is the result?", options: ["The script fails.","The Customer data no longer exists.","The Customer table no longer exists.","The Customer table exists but has no data."], answer: 2, explanation: "Restoring the 3PM backup reverts the database to that point in time. The Customer table (created at 4PM) will not exist." },
+  { category: "SQL Terms", q: "Truncate is used to describe the process of applying a backup to a damaged database. What should replace 'Truncate'?", options: ["Attach","No change is needed","Restore","Commit"], answer: 2, explanation: "RESTORE is the correct term for applying a backup to recover a damaged or corrupt database." },
+  { category: "Security", q: "User1 is assigned permissions WITH GRANT OPTION. This enables User1 to:", options: ["View other users' permissions.","Create new database users.","Request a log of permission use.","Delegate permissions to other users."], answer: 3, explanation: "WITH GRANT OPTION allows the grantee to grant the same permissions to other users — i.e., delegate permissions." },
+  { category: "SQL Aggregate", q: "Which statement returns the number of rows in the Employee table?", options: ["SELECT * FROM Employee","SELECT SUM(*) FROM Employee","SELECT COUNT(rows) FROM Employee","SELECT COUNT(*) FROM Employee"], answer: 3, explanation: "SELECT COUNT(*) counts all rows in a table including NULLs. COUNT(rows) is not valid syntax." },
+  { category: "SQL Sorting", q: "List product name and price sorted by price from HIGHEST to LOWEST. Which is correct?", options: ["SELECT Name, Price FROM Product ORDER BY Price DESC","SELECT Name, Price FROM Product ORDER BY Price ASC","SELECT Name, BOTTOM Price FROM Product","SELECT Name, TOP Price FROM Product"], answer: 0, explanation: "ORDER BY Price DESC sorts from highest to lowest (descending). ASC would be lowest to highest." },
+  { category: "Security", q: "To disable User1's access to view data in the Customer table, which statement should you use?", options: ["REMOVE User1 FROM Customer","REMOVE SELECT ON Customer FROM User1","REVOKE SELECT ON Customer FROM User1","REVOKE User1 FROM Customer"], answer: 2, explanation: "REVOKE removes permissions. The correct syntax is: REVOKE [permission] ON [object] FROM [user]." },
+  { category: "Database Planning", q: "Which activity allows the stages of the database application to be realized as efficiently as possible?", options: ["Identifying information for objects","Object identification","Database planning","Requirements collection and analysis"], answer: 2, explanation: "Database planning is the management activity that covers the entire lifecycle to ensure efficient and effective development." },
+  { category: "SQL DDL", q: "Which SQL keyword removes records from a table?", options: ["REMOVE","DROP","CANCEL","DELETE"], answer: 3, explanation: "DELETE removes rows from a table. DROP removes the entire table structure. REMOVE and CANCEL are not valid SQL keywords." },
+  { category: "SQL DML", q: "Create a query that returns a set of table data by using the ______ statement.", options: ["INSERT","SELECT","REPLACE","No change is needed"], answer: 1, explanation: "SELECT is used to retrieve (query) data from tables. INSERT adds data, UPDATE modifies it, DELETE removes it." },
+  { category: "SQL Joins", q: "SELECT * FROM Cars LEFT OUTER JOIN Colors ON Cars.ColorId = Colors.ColorID — same tables as before. How many rows?", options: ["6","0","2","3"], answer: 3, explanation: "LEFT OUTER JOIN always returns all rows from the left table. Cars has 3 rows, so 3 rows are returned." },
+  { category: "SQL INSERT", q: "What must be included in parentheses in an INSERT INTO .. VALUES statement?", options: ["Number of columns","Column types","Required fields","Null values"], answer: 2, explanation: "The VALUES clause must include values for all required (NOT NULL) fields at minimum, in order matching the column list." },
+  { category: "External Tables", q: "Which statement about external tables is TRUE?", options: ["They can have indexes.","They can have constraints or triggers.","They cannot be written to with DML commands.","They cannot be used in joins, views, and subqueries."], answer: 2, explanation: "External tables are read-only — they cannot be modified with INSERT, UPDATE, or DELETE. They CAN be used in joins and views." },
+  { category: "SQL Wildcards", q: "To find every product whose name contains a specific character, which keyword should you use in WHERE?", options: ["INCLUDES","FIND","BETWEEN","LIKE"], answer: 3, explanation: "LIKE is used for pattern matching. Use % for multiple characters and _ for a single character wildcard." },
+  { category: "Constraints", q: "To establish a relationship between data in two tables, which constraint should you define?", options: ["Link Key","Foreign Key","Index Key","Default Key"], answer: 1, explanation: "A FOREIGN KEY constraint creates a link between two tables by referencing the primary key of the parent table." },
+  { category: "Stored Procedures", q: "Which of the following is TRUE about stored procedures vs functions? (Stored procedures...)", options: ["You can delete data using a stored procedure","A function must have a return value","A stored procedure must have a return value","All of the above"], answer: 0, explanation: "Stored procedures CAN delete data. Functions MUST return a value; stored procedures do not have to return a value." },
+  { category: "MySQL Admin", q: "CHECK TABLE works for which table types?", options: ["InnoDB","FEDERATED","MyISAM","MERGE"], answer: [0,2], explanation: "CHECK TABLE works on InnoDB and MyISAM tables. FEDERATED and MERGE table types do not support this command." },
+  { category: "DDL Statements", q: "You need to rename a column in a database table. Which DDL statement should you use?", options: ["CREATE","ALTER","UPDATE","INSERT"], answer: 1, explanation: "ALTER TABLE is used to modify table structure including adding, dropping, or renaming columns. UPDATE modifies data, not structure." },
+  { category: "SQL DML", q: "On which database structure does an INSERT statement operate?", options: ["Role","Stored procedure","User","Trigger","Table"], answer: 4, explanation: "INSERT operates on TABLES — it adds rows of data to an existing table." },
+  { category: "Indexes", q: "While a clustered index is based on a _______, a nonclustered index can be based on any other field.", options: ["Column","Foreign key field","Row","Primary key field"], answer: 3, explanation: "A clustered index is typically based on the primary key field, which determines the physical sort order of the table." },
+  { category: "SQL UPDATE", q: "To change Tia's name to Kimberly in the Volunteer table, which UPDATE statement is correct?", options: ["SET GivenName = 'Kimberly' FROM Volunteer WHERE GivenName = 'Tia'","SET Volunteer TO GivenName = 'Kimberly' WHERE GivenName = 'Tia'","UPDATE GivenName = 'Kimberly' FROM Volunteer WHERE GivenName = 'Tia'","UPDATE Volunteer SET GivenName = 'Kimberly' WHERE GivenName = 'Tia'"], answer: 3, explanation: "Correct UPDATE syntax: UPDATE [table] SET [column] = [value] WHERE [condition]." },
+  { category: "Views", q: "A view best defines as:", options: ["A location within a database that stores general information","A stored statement that leads one to specific information","A location within a database that stores specific information","A stored statement that leads one to general information"], answer: 1, explanation: "A view is a stored SELECT query (stored statement) that presents specific data from underlying tables." },
+  { category: "Indexes", q: "One reason to add an index is to:", options: ["Decrease storage space.","Improve performance of SELECT statements.","Improve performance of INSERT statements.","Increase database security."], answer: 1, explanation: "Indexes speed up data retrieval (SELECT). They actually SLOW DOWN inserts/updates/deletes due to index maintenance overhead." },
+  { category: "SQL Subqueries", q: "A SELECT inside a WHERE clause (e.g., WHERE DeptID = (SELECT DeptID FROM Employee WHERE EmployeeID = 1234)) is an example of:", options: ["Outer join","Cartesian product","Subquery","Union"], answer: 2, explanation: "A subquery (or nested query) is a SELECT statement inside another SQL statement, used here to provide a value for the WHERE clause." },
+  { category: "Database Storage", q: "You need to store contact information for each student. You should store each student's info in a:", options: ["Row","Stored procedure","Variable","Function"], answer: 0, explanation: "Each individual entity (student) is stored as a ROW (record) in a table. Columns represent attributes." },
+  { category: "Views", q: "You delete all Furniture products from the Product table. A view filtering for Furniture products will be:", options: ["Archived","Deleted","Unchanged","Empty"], answer: 3, explanation: "Views are dynamic — they reflect current data. Since the underlying data is deleted, the view's result set becomes empty." },
+  { category: "DDL Statements", q: "To remove an object from an RDBMS, which statement should you use?", options: ["CREATE","ALTER","SELECT","DROP"], answer: 3, explanation: "DROP removes database objects (tables, views, indexes, procedures, etc.) from the database entirely." },
+  { category: "DDL ALTER", q: "To add a new column named District (INTEGER) to the Customer table, which statement is correct?", options: ["MODIFY TABLE Customer ADD (District INTEGER)","ALTER TABLE Customer MODIFY (District INTEGER)","MODIFY TABLE Customer (District INTEGER)","ALTER TABLE Customer ADD (District INTEGER)"], answer: 3, explanation: "The correct syntax is ALTER TABLE [table] ADD [column definition]. MODIFY is used to change an existing column's definition." },
+  { category: "SQL UPDATE", q: "To change a product's name to 'glass' in an UPDATE statement, what should you include?", options: ["LET ProductName = 'glass'","ASSIGN ProductName = 'glass'","EXEC ProductName = 'glass'","SET ProductName = 'glass'"], answer: 3, explanation: "SET is the keyword used in UPDATE to specify which column to change and the new value: UPDATE [table] SET [col] = [val]." },
+  { category: "SQL DELETE", q: "DELETE FROM Student — Student has 100 rows, some with NULL in FirstName. What is the result?", options: ["All rows in the table will be deleted.","You will receive an error message.","All rows with NULL in FirstName will be deleted.","All rows and the table definition will be deleted."], answer: 0, explanation: "DELETE FROM without a WHERE clause deletes ALL rows. The table structure remains (unlike DROP TABLE). NULL values don't affect this." },
+  { category: "SQL Joins", q: "To retrieve data from two related tables based on a shared column, which command should you use?", options: ["JOIN","INTERSECT","TRUNCATE","UNION"], answer: 0, explanation: "JOIN combines rows from two or more tables based on a related column. UNION combines result sets of two queries." },
+  { category: "SQL Joins", q: "Results include ALL customers and their orders, PLUS customers who have no orders. Which join type is this?", options: ["Complete join","Outer join","Partial join","Inner join"], answer: 1, explanation: "A LEFT OUTER JOIN (outer join) returns all rows from the left table plus matching rows from the right. INNER JOIN would only return matches." },
+  { category: "Keys", q: "Which key uniquely identifies a row in a table?", options: ["Local","Primary","Superkey","Foreign"], answer: 1, explanation: "A PRIMARY KEY uniquely identifies each row in a table and cannot contain NULL values." },
+  { category: "SQL SELECT", q: "To retrieve rows from a table, which DML command should you use?", options: ["OUTPUT","READ","GET","SELECT"], answer: 3, explanation: "SELECT is the DML command used to query and retrieve data from database tables." },
+  { category: "Foreign Keys", q: "To ensure each Sales record has a valid associated Salesperson, which object should you add to the Sales table?", options: ["Nonclustered index","Foreign key","Clustered index","Primary key"], answer: 1, explanation: "A FOREIGN KEY enforces referential integrity by requiring that values in one table's column match values in another table." },
+  { category: "Database Objects", q: "A named group of SQL statements that can be executed in a database is called a:", options: ["Subroutine","Formula","Method","Stored procedure"], answer: 3, explanation: "A stored procedure is a named, precompiled collection of SQL statements stored in the database and executed as a unit." },
+  { category: "Constraints", q: "Which constraint ensures a unique value in the ID column for each customer?", options: ["DISTINCT","FOREIGN KEY","PRIMARY KEY","SEQUENTIAL"], answer: 2, explanation: "A PRIMARY KEY constraint enforces uniqueness and NOT NULL on a column, ensuring every row has a unique identifier." },
+  { category: "Data Population", q: "To populate EmployeeCopy with data from the Employee table, which statement should you use?", options: ["SELECT * INTO EmployeeCopy SELECT * FROM Employee","INSERT * FROM Employee INTO EmployeeCopy","COPY * INTO Employee SELECT * FROM Employee","INSERT INTO EmployeeCopy SELECT * FROM Employee"], answer: 3, explanation: "INSERT INTO ... SELECT copies data from one table into an existing table. SELECT INTO creates a new table." },
+  { category: "Database Design", q: "Which is the process of creating a design that supports enterprise operations for the required database system?", options: ["Application design","Database planning","Database design","Identifying relationships between objects"], answer: 2, explanation: "Database design is the process of producing a detailed data model that will support the enterprise's operations and objectives." },
+  { category: "Database Design", q: "To store volunteer data (given name, surname, phone, email) correctly, you should:", options: ["Create a view with columns named given name, surname, phone, email.","Create a table with columns named given name, surname, phone, email.","Create a view with rows named given name, surname, phone, email.","Create a table with rows named given name, surname, phone, email."], answer: 1, explanation: "Data is stored in TABLES with COLUMNS for each attribute. Views are virtual and don't physically store data. Rows represent individual records." },
+  { category: "Indexes", q: "To search a million-row Product table efficiently by unique product ID, what helps most?", options: ["An index","A subquery","A cursor","A trigger"], answer: 0, explanation: "An INDEX (especially on the primary key/unique ID) dramatically speeds up lookups by creating a data structure for fast retrieval." },
+  { category: "Cascade Delete", q: "You delete rows in Order table; corresponding rows in OrderItem are automatically deleted. This is an example of:", options: ["Inherited delete","Waterfall delete","Cascade delete","Functional delete"], answer: 2, explanation: "CASCADE DELETE automatically deletes related rows in child tables when the parent row is deleted, maintaining referential integrity." },
+  { category: "Normalization", q: "A table has a candidate key and a non-key attribute that depends on the WHOLE candidate key (not just part). Which normal form?", options: ["4NF","1NF","3NF","2NF"], answer: 3, explanation: "2NF requires that all non-key attributes are fully dependent on the entire primary/candidate key (no partial dependencies)." },
+  { category: "SQL Categories", q: "Which category of SQL statements is used to add, remove, and modify database STRUCTURES?", options: ["Data Control Language (DCL)","Data Manipulation Language (DML)","Data Definition Language (DDL)","Data Access Language (DAL)"], answer: 2, explanation: "DDL (Data Definition Language) includes CREATE, ALTER, DROP — for creating and modifying database structures/objects." },
+  { category: "SQL DELETE", q: "DELETE FROM Order WHERE CustomerID = 209 — what is the result?", options: ["The first order for CustomerID 209 is deleted.","All orders for 209 are deleted AND CustomerID 209 is deleted from Customer.","All orders for CustomerID 209 are deleted from Order.","CustomerID 209 is deleted from Customer."], answer: 2, explanation: "The DELETE statement only affects the specified table (Order). The Customer table is not touched unless CASCADE DELETE is configured." },
+  { category: "Data Types", q: "An AccountNumber column always has one letter and four digits. Which data type should you use?", options: ["BYTE","DOUBLE","SMALLINT","CHAR"], answer: 3, explanation: "CHAR is a fixed-length character string, perfect for data with a consistent format like 'A1234'. VARCHAR is variable-length." },
+  { category: "DDL Commands", q: "Which command adds a column to an existing table?", options: ["ALTER","UPDATE","INSERT","MODIFY"], answer: 0, explanation: "ALTER TABLE is used to add, drop, or modify columns in an existing table. UPDATE modifies data, not structure." },
+  { category: "Database Models", q: "The ______ model for database management is based on first-order predicate logic.", options: ["Truncate","Relational","Traditional"], answer: 1, explanation: "The Relational model, developed by E.F. Codd, is based on first-order predicate logic and organizes data into tables (relations)." },
+  { category: "SQL Best Practice", q: "Before running a DELETE statement, it is always good to run a ______ statement first.", options: ["SELECT","DROP","INSERT","UPDATE"], answer: 0, explanation: "Running a SELECT with the same WHERE conditions first lets you verify exactly which rows will be affected before deleting them." },
+  { category: "Data Types", q: "To store product quantities and minimize storage space, which data type should you use?", options: ["FLOAT","COUNT","INTEGER","DOUBLE"], answer: 2, explanation: "INTEGER stores whole numbers efficiently. FLOAT and DOUBLE are for decimals and use more storage. COUNT is a function, not a type." },
+  { category: "2NF Violation", q: "A table has composite key (AuthorID + TitleID). LiteraryAgent depends only on AuthorID (partial dependency). This violates:", options: ["It violates 2NF.","It violates 4NF.","There is no violation.","It violates 1NF."], answer: 0, explanation: "2NF requires no partial dependencies — every non-key attribute must depend on the ENTIRE composite key, not just part of it. LiteraryAgent depends only on AuthorID, violating 2NF." },
+  { category: "Database Terms", q: "In a database table, each column represents a unique record. What should replace 'column'?", options: ["Table","No change is needed","Index","Row"], answer: 3, explanation: "Each ROW (record) represents a unique entry. Columns represent attributes/fields. The original statement was wrong." },
+  { category: "Data Types", q: "StudentName (string), GradeLevel (whole number), DaysAbsent (one decimal place) — which data type for GradeLevel?", options: ["VARCHAR","INT","DECIMAL","BIT"], answer: 1, explanation: "INT stores whole numbers. VARCHAR stores variable-length strings. DECIMAL stores numbers with decimal places." },
+  { category: "SQL Aggregate", q: "SELECT COUNT(*) FROM Product WHERE Quantity > 18 — Products: Spoon(33), Fork(17), Plate(20), Cup(51). Result?", options: ["3","2","4","1"], answer: 0, explanation: "Spoon(33), Plate(20), and Cup(51) all have Quantity > 18. Fork(17) does not. So COUNT = 3." },
+  { category: "SQL SELECT", q: "SELECT * FROM Employee — Employee has 4 columns. Which columns are returned?", options: ["Only the first and last columns","Only the last column","All columns","Only the first column"], answer: 2, explanation: "SELECT * returns ALL columns from the specified table." },
+  { category: "NULL Values", q: "Which value CANNOT be stored in a character column defined as PRIMARY KEY?", options: ["'0'","'null'","null","\"\""], answer: 2, explanation: "A PRIMARY KEY cannot contain NULL values. Note: 'null' (the string) is allowed; null (the actual NULL value) is not." },
+  { category: "SQL Error", q: "CREATE TABLE Production — Line 2: Fruit_type VarChar (no size). What line has an error?", options: ["Line 4","Line 3","Line 2","Line 1"], answer: 2, explanation: "Line 2 has an error because VARCHAR requires a length parameter, e.g., VarChar(50). Without it, the statement is invalid." },
+  { category: "Normalization", q: "Breaking a single table (ProductID, Name, Color1, Color2, Color3) into two tables (one with Name, one with Color per row) is called:", options: ["Denormalization","Defragmentation","Normalization","Fragmentation"], answer: 2, explanation: "Normalization is the process of restructuring a database to reduce redundancy and improve data integrity, often by splitting tables." },
+  { category: "Security - Roles", q: "To establish a reusable set of permissions for new users, what should you create?", options: ["List","Role","Resource","Group"], answer: 1, explanation: "A ROLE is a named collection of permissions that can be assigned to multiple users, simplifying permission management." },
+  { category: "Backup", q: "You have 10TB of data and need to back up every 2 hours. Which backup type should you use?", options: ["Incremental","Archive","Partial","Full"], answer: 0, explanation: "Incremental backups only capture changes since the last backup, making them fast and suitable for frequent backups of large databases." },
+  { category: "SQL WHERE", q: "Which keyword in a SELECT statement returns rows that meet a specific condition?", options: ["ORDER BY","WHERE","FROM","UNION"], answer: 1, explanation: "The WHERE clause filters rows based on specified conditions. FROM specifies the table; ORDER BY sorts results." },
+  { category: "SQL INSERT", q: "INSERT INTO Product (ProductID, Name) VALUES (12345, 'Plate') — which option is this?", options: ["Option A","Option C","Option B","Option D"], answer: 3, explanation: "Option D uses the explicit column list with INSERT INTO Product (ProductID, Name) VALUES (12345, 'Plate') — the correct and safest syntax." },
+  { category: "Transactions", q: "A transaction deletes 100 rows; it fails after 40 are deleted. What is the result?", options: ["The transaction will restart.","The table will be corrupted.","Forty rows will be deleted.","No rows will be deleted."], answer: 3, explanation: "Transactions are atomic — either ALL changes commit or NONE do. A failed transaction rolls back, leaving 0 rows deleted." },
+  { category: "SQL UNION", q: "To combine results of two queries into a single result with ALL rows from BOTH queries, which SQL statement should you use?", options: ["UNION","TRUNCATE","EXCEPT","JOIN"], answer: 0, explanation: "UNION combines result sets and removes duplicates. UNION ALL includes duplicates. EXCEPT returns rows only in the first query." },
+  { category: "SQL UPDATE", q: "What statement is used to change existing data?", options: ["MODIFY","CHANGE","NEW","UPDATE"], answer: 3, explanation: "UPDATE is the DML statement used to modify existing data in a table." },
+  { category: "SQL WHERE", q: "Use the FROM keyword in a SELECT statement to return rows that meet a specific condition. What should replace FROM?", options: ["WHERE","ORDER BY","UNION","No change is needed"], answer: 0, explanation: "WHERE filters rows based on conditions. FROM specifies the table source. The original statement was incorrect." },
+  { category: "SQL Errors", q: "One error when manipulating data is a missing _______:", options: ["Table","Keyword","Column","Query"], answer: 1, explanation: "A missing keyword (like FROM, WHERE, SET) is a common syntax error that prevents a SQL statement from executing." },
+  { category: "Composite Keys", q: "A ChapterLanguage junction table needs a composite primary key. Which two columns should you select?", options: ["City","LanguageId","ChapterId","Region","Country","LanguageName"], answer: [1,2], explanation: "A junction table's composite primary key should be the primary keys from each related table: ChapterId (from Chapter) and LanguageId (from Language)." },
+  { category: "DML Commands", q: "What are three valid DML commands?", options: ["INSERT","OUTPUT","UPDATE","DELETE","COMMIT"], answer: [0,2,3], explanation: "DML (Data Manipulation Language) includes SELECT, INSERT, UPDATE, and DELETE. COMMIT is TCL; OUTPUT is not a standard DML command." },
+  { category: "DDL Statements", q: "Use indexing to create, remove, or change database objects. What should replace 'indexing'?", options: ["Data Definition Language (DDL) statements","No change is needed","A unique constraint","Data Manipulation Language (DML) statements"], answer: 0, explanation: "DDL statements (CREATE, ALTER, DROP) are used to create, remove, or change database objects like tables, views, and indexes." },
+  { category: "SQL Joins", q: "Cars table: 9 rows (various origins and colors). SELECT * FROM Cars WHERE c.Origin <> 'USA' AND c.Color <> 'Black'. How many rows returned?", options: ["7","6","5","4"], answer: 3, explanation: "Exclude USA (Truck, Convertible = 2 rows) and Black (Compact, Convertible, Hybrid = 3 rows). Removing overlaps: 4 rows remain." },
+  { category: "Database Restore", q: "In which situation do you need to perform a RESTORE on a database?", options: ["When you encounter an application error","When you need to roll back a transaction","When data needs to be deleted","When data becomes corrupted in the database"], answer: 3, explanation: "A restore is needed when data is corrupted or lost. Application errors use debugging; rollbacks use ROLLBACK TRANSACTION." },
+  { category: "SQL IS NOT NULL", q: "SELECT Name FROM Product WHERE Quantity IS NOT NULL — Products: Apples(33), Oranges(0), Pears(29), Plums(NULL). How many rows?", options: ["3","1","4","2","0"], answer: 0, explanation: "Apples, Oranges, and Pears all have non-NULL Quantity values. Plums has NULL, so it's excluded. Result: 3 rows." },
+  { category: "SQL INSERT vs UPDATE", q: "What is one difference between an UPDATE and DELETE statement?", options: ["A delete statement works only within a stored procedure.","An update statement can change only one row.","An update statement does not remove rows from a table.","A delete statement cannot use a WHERE clause."], answer: 2, explanation: "UPDATE changes data in existing rows but doesn't remove them. DELETE removes rows. Both can use WHERE. Neither is restricted to stored procedures." },
+  { category: "Prototyping", q: "Which are the types of prototyping strategies? (Choose two)", options: ["Physical prototyping","Evolutionary prototyping","Revolutionary prototyping","Requirements prototyping"], answer: [1,3], explanation: "The two main prototyping strategies are Evolutionary prototyping (refine one prototype) and Requirements prototyping (used just to clarify requirements then discarded)." },
+  { category: "DDL Keywords", q: "Which keyword can be used in a CREATE TABLE statement?", options: ["ORDER BY","UNIQUE","GROUP BY","DISTINCT"], answer: 1, explanation: "UNIQUE is a constraint used in CREATE TABLE to ensure all values in a column are different. ORDER BY and GROUP BY are for queries." },
+  { category: "SQL INSERT", q: "What statement is used to insert values into a table?", options: ["ADD INTO ... VALUES","ADD VALUES","INSERT VALUES ... INTO","INSERT INTO ... VALUES"], answer: 3, explanation: "The correct syntax is INSERT INTO [table] ([columns]) VALUES ([values])." },
+  { category: "Database Planning", q: "Which database planning step determines requirements through interviewing?", options: ["Gathering information","Identifying the objects","Identifying the type of information for each object","Identifying the relationship between objects","Modeling the object"], answer: 0, explanation: "Gathering information involves interviewing stakeholders to understand business rules and requirements for the database." },
+  { category: "Normalization", q: "Denormalization is performed in order to:", options: ["Eliminate repeating groups.","Improve query performance.","Reduce redundancy.","Create smaller tables."], answer: 1, explanation: "Denormalization intentionally adds redundancy to improve query performance by reducing the need for joins." },
+  { category: "SQL INSERT", q: "You need to add rows to a database table. Which SQL keyword should you use?", options: ["JOIN","CREATE","INSERT","UPDATE"], answer: 2, explanation: "INSERT adds new rows of data to a table. UPDATE modifies existing rows. CREATE makes new database objects." },
+  { category: "SQL UPDATE", q: "You need to change a student's first name. Which SQL keyword should you use?", options: ["SELECT","UPDATE","CHANGE","INSERT"], answer: 1, explanation: "UPDATE modifies existing data in a table: UPDATE [table] SET [column] = [new value] WHERE [condition]." },
+  { category: "SQL GRANT", q: "Which command gives a user permission to read table data?", options: ["GRANT SELECT","ALLOW SELECT","PERMIT READ","LET READ"], answer: 0, explanation: "GRANT SELECT ON [table] TO [user] gives the user permission to read (SELECT) data from the specified table." },
+  { category: "Triggers", q: "To automatically record UPDATE changes to the Employees table in EmployeeChanges, what should you create?", options: ["A DDL trigger that queries the inserted table","A DML trigger that queries the updated table","A DML trigger that queries the inserted table","A DDL trigger that queries the updated table"], answer: 2, explanation: "A DML trigger fires on INSERT/UPDATE/DELETE. For UPDATEs, the 'inserted' table holds the new values (and 'deleted' holds old values)." },
+  { category: "Database Names", q: "CREATE DATABASE '24342' — What is the output?", options: ["A database will be created.","Error: name must be combination of numerals and alphabets.","Error: name must begin with alphabet, all uppercase.","Error: name must begin with an alphabet."], answer: 0, explanation: "In MySQL, a database name consisting entirely of numbers enclosed in quotes IS valid — the database will be created successfully." },
+  { category: "SQL REVOKE", q: "To disable User1's view access on the Customer table, which is correct?", options: ["REMOVE User1 FROM Customer","REMOVE SELECT ON Customer FROM User1","REVOKE SELECT ON Customer FROM User1","REVOKE User1 FROM Customer"], answer: 2, explanation: "REVOKE removes privileges: REVOKE SELECT ON Customer FROM User1. The syntax matches GRANT but in reverse." },
+  { category: "Database Design", q: "Which is the process of extracting trails on a regular basis for transfer to a designated security system?", options: ["Encryption","Native auditing","Abstraction","Database security"], answer: 1, explanation: "Native auditing involves capturing and transferring database activity logs to a secure location inaccessible to DBAs." },
+  { category: "Indexes", q: "To change a view, which keyword should replace CREATE in CREATE VIEW?", options: ["UPDATE","REPLACE","ALTER","CHANGE"], answer: 2, explanation: "ALTER VIEW modifies an existing view definition. In some databases, you may need to DROP and CREATE, but ALTER is the standard command." },
+  { category: "SQL Errors", q: "One error is attempting to retrieve data with a well-written query but against the wrong ________.", options: ["Row","Table","Column","Database"], answer: 3, explanation: "Querying the wrong DATABASE is a common logical error — the query runs without errors but returns unexpected or no results." },
+  { category: "SQL UPDATE", q: "What clause should ALWAYS be included in an UPDATE statement?", options: ["GROUP BY","WHERE","FROM","HAVING"], answer: 1, explanation: "Always include WHERE in UPDATE statements to specify which rows to change. Without WHERE, ALL rows in the table are updated." },
+  { category: "SQL DELETE", q: "To delete the Customer record with CustomerID = 12345, which statement is correct?", options: ["UPDATE Customer DELETE * WHERE CustomerID = 12345","DELETE CustomerID FROM Customer WHERE CustomerID = 12345","UPDATE CustomerID FROM Customer DELETE * WHERE CustomerID = 12345","DELETE FROM Customer WHERE CustomerID = 12345"], answer: 3, explanation: "Correct DELETE syntax: DELETE FROM [table] WHERE [condition]. You don't specify columns — DELETE always removes entire rows." },
+  { category: "DDL Keywords", q: "Which command removes a TABLE from a database?", options: ["DROP TABLE","ELIMINATE TABLE","CLEAR TABLE","DELETE TABLE"], answer: 0, explanation: "DROP TABLE removes the entire table structure AND its data. DELETE removes rows. TRUNCATE removes all rows but keeps the structure." },
+  { category: "SQL CREATE USER", q: "To enable a new employee to authenticate to your database, which command should you use?", options: ["INSERT USER","ADD USER","ALLOW USER","CREATE USER","ALTER USER"], answer: 3, explanation: "CREATE USER creates a new database user account. ALTER USER modifies existing users. INSERT/ADD/ALLOW USER are not valid SQL commands." },
+  { category: "SQL TRUNCATE", q: "Which of the following commands CANNOT be rolled back? (Choose two)", options: ["DELETE","UPDATE","TRUNCATE","COMMIT"], answer: [2,3], explanation: "TRUNCATE is a DDL operation that cannot be rolled back in most databases. COMMIT finalizes transactions and also cannot be rolled back." },
+  { category: "Data Types", q: "To store product names varying 3-30 characters, minimizing storage space, which data type should you use?", options: ["CHAR(3,30)","VARCHAR(3,30)","VARCHAR(30)","CHAR(30)"], answer: 2, explanation: "VARCHAR(30) stores variable-length strings up to 30 chars, using only the space needed. CHAR(30) always uses 30 bytes regardless of actual length." },
+  { category: "Foreign Keys", q: "To ensure employees can only be assigned to existing departments, what should you apply to the Employee table?", options: ["A data type","A primary key","A unique constraint","A foreign key","An index"], answer: 3, explanation: "A FOREIGN KEY on the DepartmentID column enforces referential integrity, preventing assignment to departments that don't exist." },
+  { category: "Abstraction", q: "Which enables users to use generic methods to access a database, focusing on coding rather than specific API syntax?", options: ["Native auditing","Database security","Authentication","Abstraction"], answer: 3, explanation: "Abstraction (like JDBC/ODBC or ORMs) provides a generic interface so developers don't need to write database-specific code." },
+  { category: "SQL DROP VIEW", q: "To remove a view named EmployeeView, which statement should you use?", options: ["DROP EmployeeView","DELETE EmployeeView","DROP VIEW EmployeeView","DELETE VIEW EmployeeView"], answer: 2, explanation: "DROP VIEW [view_name] removes a view. The VIEW keyword is required. DELETE is for rows, not database objects." },
+  { category: "SQL CREATE VIEW", q: "To filter rows from an underlying table in a CREATE VIEW, which clause MUST be included?", options: ["WHERE","FILTER","JOIN","CONSTRAINT"], answer: 0, explanation: "The WHERE clause in the CREATE VIEW's SELECT statement filters which rows appear in the view's result set." },
+  { category: "Database Storage", q: "To store first name, last name, and student ID for 100 students, the information will be stored as:", options: ["Three items and 100 cells.","100 rows and three columns.","100 items and three cells.","Three rows and 100 columns."], answer: 1, explanation: "100 students = 100 rows (one per student). Three attributes (first name, last name, ID) = 3 columns. This is the relational model." },
+  { category: "SQL Primary Key", q: "INSERT INTO Product VALUES (3296, 'Table', 4444) — ProductID 3296 already exists (PRIMARY KEY). What is the result?", options: ["A foreign key constraint violation","A syntax error","A new row in the Product table","A primary key constraint violation","A new row in the Category table"], answer: 3, explanation: "Inserting a duplicate PRIMARY KEY value causes a primary key constraint violation (duplicate key error)." },
+  { category: "DEFAULT Constraint", q: "Which is used to give a default value to a column if the value for that column is unknown?", options: ["Concurrency","Transaction","DEFAULT constraint","Nested transaction"], answer: 2, explanation: "A DEFAULT constraint assigns a predefined value to a column when no value is specified during INSERT." },
+  { category: "Encryption", q: "Management wants to prevent unauthorized viewing with an algorithm called cipher. Which technique should you suggest?", options: ["Encryption","Abstraction","Native auditing","Authentication"], answer: 0, explanation: "Encryption uses cipher algorithms to scramble data, making it unreadable without the decryption key, even if unauthorized access is obtained." },
+  { category: "Database Design", q: "Which step in database planning records an object so it is represented visually in the system?", options: ["Identifying relationships between objects","Gathering information","Object identification","Object modeling"], answer: 3, explanation: "Object modeling records and visually represents objects in the system, typically using diagrams like ER diagrams." },
+  { category: "Indexes", q: "Terms 'bitmap,' 'b-tree,' and 'hash' refer to which type of database structure?", options: ["Index","Stored procedure","Trigger","View","Function"], answer: 0, explanation: "B-tree, bitmap, and hash are different INDEX implementation types/structures used to optimize data retrieval." },
+  { category: "DDL/DML", q: "Which of the following are DML commands? (Choose all that apply)", options: ["SELECT","INSERT","ALTER","DELETE","SELECT INTO","UPDATE"], answer: [1,3,4,5], explanation: "DML commands: INSERT, DELETE, SELECT INTO, UPDATE. SELECT is also often considered DML. ALTER is DDL. Note: some sources include SELECT in DML." },
+  { category: "Backup Recovery", q: "A full database backup is a copy of all data. A ______ backup copies only data changed before the last full backup.", options: ["Transaction log","Full","Differential","File restore"], answer: 2, explanation: "A differential backup copies all data changed SINCE the last full backup. Transaction log backups capture all transactions since the last log backup." },
+  { category: "Security", q: "James needs department users to read and update their own database only. What should he do?", options: ["Create logins per group, add to db_ddladmin.","Create logins per user, add to db_ddladmin.","Create logins per group, add to db_datareader and db_datawriter.","Create logins per user, add to db_datareader and db_datawriter."], answer: 2, explanation: "Group logins are more efficient (one per department, not one per person). db_datareader = read, db_datawriter = write. db_ddladmin would allow schema changes." },
+  { category: "SQL Indexes", q: "A clustered index physically sorts rows. A non-clustered index retrieves data faster without physically sorting. Which index on FlightNumber sorts rows?", options: ["Clustered index","Non-clustered index"], answer: 0, explanation: "A clustered index determines the physical order of data in the table. Non-clustered creates a separate structure with pointers to data." },
+  { category: "Database Transactions", q: "Which provides reliable units of work allowing correct recovery from failures and keeps a database consistent?", options: ["Database transaction","Concurrency control","Database security","Two-phase commit"], answer: 0, explanation: "Database transactions (ACID: Atomicity, Consistency, Isolation, Durability) ensure reliable and consistent data operations even during failures." },
+  { category: "DML Triggers", q: "To prevent customers from being deleted from the Customers table using an AFTER DELETE trigger, which code is correct?", options: ["BEFORE DELETE trigger with RAISERROR and ROLLBACK","AFTER DELETE with COUNT(*) > 0 from DELETED table, RAISERROR, ROLLBACK","AFTER DELETE with COUNT(*) > 1 from DELETED table","AFTER DELETE with just RAISERROR and ROLLBACK (no IF check)"], answer: [1,3], explanation: "SQL Server uses AFTER DELETE (not BEFORE). Option B checks if any rows were deleted (>0) before raising error. Option D also works — AFTER DELETE always fires when deletion occurs." },
+  { category: "SQL DDL", q: "Use the ALTER statement to add a new table in a database. What should replace ALTER?", options: ["No change is needed","CREATE","INSERT","UPDATE"], answer: 1, explanation: "CREATE TABLE adds a new table. ALTER TABLE modifies an existing table. The original statement was incorrect." },
+  { category: "SELECT INTO", q: "What statement is used to copy records from an existing table to a NEW table?", options: ["SELECT WITHIN","INSERT INTO SELECT","SELECT","SELECT INTO"], answer: 3, explanation: "SELECT INTO creates a NEW table and copies data into it. INSERT INTO ... SELECT copies into an EXISTING table." },
+  { category: "ALTER TABLE", q: "Which statement should you use to remove a FOREIGN KEY?", options: ["DELETE FOREIGN KEY","DELETE TABLE","ALTER FOREIGN KEY","ALTER TABLE"], answer: 3, explanation: "ALTER TABLE is used to modify constraints including dropping foreign keys: ALTER TABLE [table] DROP FOREIGN KEY [constraint_name]." },
+  { category: "SQL UPDATE", q: "To change ProductCategory to 43 for all spoons: UPDATE Product SET ProductCategory = 43 WHERE ProductDescription = 'spoon' — which option is this?", options: ["Option A","Option B","Option C","Option D"], answer: 0, explanation: "Correct UPDATE syntax: UPDATE [table] SET [col = val] WHERE [condition]. The SET comes after the table name, and WHERE filters the rows." },
+  { category: "Indexes", q: "A clustered index improves performance of queries that ______ and on columns that ______.", options: ["Return large result sets / are accessed sequentially","Return small result sets / are accessed randomly","Never use ORDER BY / contain all unique values","Use only GROUP BY / have foreign keys"], answer: 0, explanation: "Clustered indexes excel at: queries returning large result sets (range scans) and columns accessed sequentially (like date ranges)." },
+  { category: "Database Locks", q: "What prevents the current database operation from reading/writing a data item while it's being accessed by another operation?", options: ["Deadlock","Constraint","Lock","Encryption"], answer: 2, explanation: "A LOCK prevents concurrent access conflicts by blocking other operations from reading or writing a data item that's currently in use." },
+  { category: "SQL Cartesian Product", q: "Two tables, each with 3 rows. Nine rows will be included in their Cartesian product. Is this correct?", options: ["Three","No change is needed","Six","Zero"], answer: 1, explanation: "A Cartesian product of two tables multiplies their row counts: 3 × 3 = 9. The original statement is CORRECT (no change needed)." },
+  { category: "Functional Dependency", q: "A table has ProductID and ProductCategory columns. Which database term describes their relationship (ProductID determines ProductCategory)?", options: ["Compositional","Cohort","Functionally dependent","Relationally dependent","Deterministic"], answer: 2, explanation: "Functional dependency means one attribute (ProductID) determines the value of another (ProductCategory): ProductID → ProductCategory." },
+];
+
+let quizQuestions = [];
+let currentIdx = 0;
+let score = 0;
+let wrongAnswers = [];
+let selectedMode = 10;
+let userAnswers = [];
+
+function selectMode(el) {
+  document.querySelectorAll('.mode-card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedMode = el.dataset.mode === 'all' ? QUESTIONS.length : parseInt(el.dataset.mode);
+}
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function startQuiz() {
+  quizQuestions = shuffle(QUESTIONS).slice(0, selectedMode);
+  currentIdx = 0;
+  score = 0;
+  wrongAnswers = [];
+  userAnswers = [];
+
+  document.getElementById('q-total').textContent = quizQuestions.length;
+  showScreen('quiz-screen');
+  renderQuestion();
+}
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function renderQuestion() {
+  const q = quizQuestions[currentIdx];
+  document.getElementById('q-num').textContent = currentIdx + 1;
+  document.getElementById('q-category').textContent = q.category;
+  document.getElementById('q-text').textContent = q.q;
+  document.getElementById('score-display').textContent = score;
+
+  const pct = (currentIdx / quizQuestions.length) * 100;
+  document.getElementById('progress-fill').style.width = pct + '%';
+
+  const feedbackBox = document.getElementById('feedback-box');
+  feedbackBox.classList.remove('show');
+
+  const btnNext = document.getElementById('btn-next');
+  btnNext.classList.remove('show');
+  const isLast = currentIdx === quizQuestions.length - 1;
+  btnNext.textContent = isLast ? 'SEE RESULTS →' : 'NEXT QUESTION →';
+
+  const optList = document.getElementById('options-list');
+  optList.innerHTML = '';
+
+  const letters = ['A','B','C','D','E','F'];
+  const isMulti = Array.isArray(q.answer);
+  let selected = isMulti ? [] : null;
+  let answered = false;
+
+  q.options.forEach((opt, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'option-btn';
+    btn.innerHTML = `<span class="option-letter">${letters[i]}</span><span>${opt}</span>`;
+
+    btn.addEventListener('click', () => {
+      if (answered && !isMulti) return;
+
+      if (isMulti) {
+        if (selected.includes(i)) {
+          selected = selected.filter(x => x !== i);
+          btn.style.borderColor = 'var(--border)';
+          btn.style.background = 'var(--surface)';
+          btn.querySelector('.option-letter').style.background = 'var(--surface2)';
+          btn.querySelector('.option-letter').style.color = 'var(--text)';
+        } else {
+          selected.push(i);
+          btn.style.borderColor = 'var(--accent)';
+          btn.style.background = 'rgba(0,229,255,0.06)';
+          btn.querySelector('.option-letter').style.background = 'var(--accent)';
+          btn.querySelector('.option-letter').style.color = '#000';
+        }
+        
+        // Show a "confirm" button for multi-select
+        let confirmBtn = document.getElementById('confirm-multi');
+        if (!confirmBtn) {
+          confirmBtn = document.createElement('button');
+          confirmBtn.id = 'confirm-multi';
+          confirmBtn.className = 'btn-next show';
+          confirmBtn.style.marginTop = '0.8rem';
+          confirmBtn.textContent = 'CONFIRM ANSWER';
+          confirmBtn.addEventListener('click', () => {
+            confirmBtn.remove();
+            answered = true;
+            const correct = [...q.answer].sort().join() === [...selected].sort().join();
+            gradeMulti(q, selected, correct, optList);
+            showFeedback(q, correct);
+            if (correct) score++;
+            else wrongAnswers.push({ q, selected });
+            userAnswers.push({ q, selected, correct });
+            document.getElementById('btn-next').classList.add('show');
+            document.getElementById('score-display').textContent = score;
+          });
+          optList.after(confirmBtn);
+        }
+        return;
+      }
+
+      // Single select
+      answered = true;
+      const correct = i === q.answer;
+      
+      optList.querySelectorAll('.option-btn').forEach((b, bi) => {
+        b.disabled = true;
+        if (bi === q.answer) b.classList.add('correct');
+        else if (bi === i && !correct) b.classList.add('wrong');
+      });
+
+      showFeedback(q, correct);
+      if (correct) score++;
+      else wrongAnswers.push({ q, userChoice: i });
+      userAnswers.push({ q, choice: i, correct });
+      document.getElementById('btn-next').classList.add('show');
+      document.getElementById('score-display').textContent = score;
+    });
+
+    optList.appendChild(btn);
+  });
+}
+
+function gradeMulti(q, selected, correct, optList) {
+  const btns = optList.querySelectorAll('.option-btn');
+  btns.forEach((b, i) => {
+    b.disabled = true;
+    b.style.borderColor = '';
+    b.style.background = '';
+    b.querySelector('.option-letter').style.background = '';
+    b.querySelector('.option-letter').style.color = '';
+    if (q.answer.includes(i)) b.classList.add('correct');
+    else if (selected.includes(i)) b.classList.add('wrong');
+  });
+}
+
+function showFeedback(q, correct) {
+  const fb = document.getElementById('feedback-box');
+  document.getElementById('feedback-text').textContent = q.explanation;
+  fb.style.borderLeftColor = correct ? 'var(--success)' : 'var(--danger)';
+  fb.querySelector('.fb-label').textContent = correct ? '✓ Correct!' : '✗ Incorrect';
+  fb.querySelector('.fb-label').style.color = correct ? 'var(--success)' : 'var(--danger)';
+  fb.classList.add('show');
+}
+
+function nextQuestion() {
+  // Remove confirm button if still there
+  const cb = document.getElementById('confirm-multi');
+  if (cb) cb.remove();
+
+  currentIdx++;
+  if (currentIdx >= quizQuestions.length) {
+    showResults();
+  } else {
+    renderQuestion();
+  }
+}
+
+function showResults() {
+  const total = quizQuestions.length;
+  const pct = Math.round((score / total) * 100);
+
+  document.getElementById('r-correct').textContent = score;
+  document.getElementById('r-wrong').textContent = total - score;
+  document.getElementById('r-total').textContent = total;
+  document.getElementById('pct-num').textContent = pct + '%';
+
+  const titles = [
+    [90, '🏆 Outstanding!', 'You\'re ready for the real exam.'],
+    [75, '🎯 Great Job!', 'Strong performance — keep it up!'],
+    [60, '📚 Good Effort', 'Review the wrong answers to improve.'],
+    [0, '💡 Keep Studying', 'Focus on the topics you missed.']
+  ];
+
+  for (const [thresh, title, sub] of titles) {
+    if (pct >= thresh) {
+      document.getElementById('result-title').textContent = title;
+      document.getElementById('result-sub').textContent = sub;
+      break;
+    }
+  }
+
+  // Animate ring
+  const circ = 414.69;
+  const offset = circ - (pct / 100) * circ;
+  setTimeout(() => {
+    document.getElementById('ring-circle').style.transition = 'stroke-dashoffset 1.2s ease';
+    document.getElementById('ring-circle').style.strokeDashoffset = offset;
+  }, 200);
+
+  // Wrong answers review
+  const reviewItems = document.getElementById('review-items');
+  reviewItems.innerHTML = '';
+  if (wrongAnswers.length === 0) {
+    document.querySelector('.review-list').style.display = 'none';
+  } else {
+    document.querySelector('.review-list').style.display = 'block';
+    wrongAnswers.slice(0, 20).forEach(wa => {
+      const q = wa.q;
+      const correctAns = Array.isArray(q.answer)
+        ? q.answer.map(i => q.options[i]).join(', ')
+        : q.options[q.answer];
+      const div = document.createElement('div');
+      div.className = 'review-item';
+      div.innerHTML = `
+        <div class="review-icon">❌</div>
+        <div>
+          <div class="review-q">${q.q.length > 80 ? q.q.slice(0,80)+'...' : q.q}</div>
+          <div class="review-correct">✓ ${correctAns}</div>
+        </div>`;
+      reviewItems.appendChild(div);
+    });
+  }
+
+  showScreen('results-screen');
+}
+
+function retakeQuiz() {
+  currentIdx = 0;
+  score = 0;
+  wrongAnswers = [];
+  userAnswers = [];
+  quizQuestions = shuffle(quizQuestions);
+  document.getElementById('ring-circle').style.transition = 'none';
+  document.getElementById('ring-circle').style.strokeDashoffset = 414.69;
+  showScreen('quiz-screen');
+  renderQuestion();
+}
+
+function goHome() {
+  document.getElementById('ring-circle').style.transition = 'none';
+  document.getElementById('ring-circle').style.strokeDashoffset = 414.69;
+  showScreen('start-screen');
+}
+</script>
+</body>
+</html>
